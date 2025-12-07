@@ -1,0 +1,36 @@
+﻿@model EgitimPortali.Models.Users
+@{
+    Layout = "_FrontLayout";
+}
+ <div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="card-title text-center">Kayıt Ol</h3>
+                </div>
+                <div class="card-body">
+                    <form asp-action="Register" method="post">
+                        <div class="mb-3">
+                            <label>Ad Soyad</label>
+                            <input asp-for="FullName" class="form-control" required />
+                        </div>
+                        <div class="mb-3">
+                            <label>Email Adresi</label>
+                            <input asp-for="Email" type="email" class="form-control" required />
+                            <span asp-validation-for="Email" class="text-danger"></span>
+                        </div>
+                        <div class="mb-3">
+                            <label>Şifre</label>
+                            <input asp-for="Password" type="password" class="form-control" required />
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">Kayıt Ol</button>
+                    </form>
+                </div>
+                <div class="card-footer text-center">
+                    <small>Zaten hesabın var mı? <a asp-action="Login">Giriş Yap</a></small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

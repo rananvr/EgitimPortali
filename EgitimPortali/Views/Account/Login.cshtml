@@ -1,0 +1,36 @@
+﻿@{
+    Layout = "_FrontLayout";
+}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-5">
+            <div class="card shadow">
+                <div class="card-header bg-success text-white">
+                    <h3 class="card-title text-center">Giriş Yap</h3>
+                </div>
+                <div class="card-body">
+                    @if (ViewBag.Hata != null)
+                    {
+                        <div class="alert alert-danger">@ViewBag.Hata</div>
+                    }
+
+                    <form asp-action="Login" method="post">
+                        <div class="mb-3">
+                            <label>Email Adresi</label>
+                            <input name="email" type="email" class="form-control" required />
+                        </div>
+                        <div class="mb-3">
+                            <label>Şifre</label>
+                            <input name="password" type="password" class="form-control" required />
+                        </div>
+                        <button type="submit" class="btn btn-success w-100">Giriş Yap</button>
+                    </form>
+                </div>
+                <div class="card-footer text-center">
+                    <small>Hesabın yok mu? <a asp-action="Register">Kayıt Ol</a></small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

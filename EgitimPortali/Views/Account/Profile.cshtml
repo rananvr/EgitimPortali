@@ -1,0 +1,65 @@
+﻿@model EgitimPortali.Models.Users
+@{
+    ViewData["Title"] = "Profilim";
+    Layout = "_FrontLayout";
+}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+
+            @if (ViewBag.Mesaj != null)
+            {
+                <div class="alert alert-success">@ViewBag.Mesaj</div>
+            }
+
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white d-flex align-items-center">
+                    <div class="fs-1 me-3"><i class="fas fa-user-circle"></i></div>
+                    <div>
+                        <h4 class="mb-0">Profil Bilgilerim</h4>
+                        <small>Hesap ayarlarınızı buradan yönetebilirsiniz.</small>
+                    </div>
+                </div>
+
+                <div class="card-body p-4">
+                    <form asp-action="Profile" method="post">
+                        <input type="hidden" asp-for="Id" />
+
+                        <div class="mb-3">
+                            <label class="form-label text-muted">Email Adresi (Değiştirilemez)</label>
+                            <input asp-for="Email" class="form-control bg-light" readonly />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label text-muted">Hesap Türü</label>
+                            <input asp-for="Role" class="form-control bg-light" readonly />
+                        </div>
+
+                        <hr class="my-4">
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Ad Soyad</label>
+                            <input asp-for="FullName" class="form-control" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Şifre</label>
+                            <div class="input-group">
+                                <input asp-for="Password" type="text" class="form-control" />
+                                <span class="input-group-text"><i class="fas fa-key"></i></span>
+                            </div>
+                            <small class="text-muted">Şifrenizi değiştirmek istemiyorsanız aynı bırakın.</small>
+                        </div>
+
+                        <div class="d-grid mt-4">
+                            <button type="submit" class="btn btn-success btn-lg">
+                                <i class="fas fa-save"></i> Değişiklikleri Kaydet
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

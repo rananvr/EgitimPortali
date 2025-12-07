@@ -1,0 +1,127 @@
+﻿@model IEnumerable<EgitimPortali.Models.Course>
+
+@{
+    ViewData["Title"] = "Kurs Listesi";
+}
+
+<h1 class="h3 mb-2 text-gray-800">Kurslar</h1>
+<p class="mb-4">Sistemdeki tüm kursları buradan yönetebilirsiniz.</p>
+
+<div class="card shadow mb-4">
+    <div class="card-header py-3 d-flex justify-content-between align-items-center">
+        <h6 class="m-0 font-weight-bold text-primary">Kurs Listesi</h6>
+        <a asp-action="Create" class="btn btn-primary btn-sm btn-icon-split">
+            <span class="icon text-white-50">
+                <i class="fas fa-plus"></i>
+            </span>
+            <span class="text">Yeni Kurs Ekle</span>
+        </a>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
+                <thead>
+                    <tr>
+                        <th>Resim</th>
+                        <th>Başlık</th>
+                        <th>Açıklama</th>
+                        <th>Fiyat</th>
+                        <th>Kategori</th>
+                        <th>İşlemler</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    @foreach (var item in Model)
+                    {
+                        <tr>
+                            <td>
+                                @if (!string.IsNullOrEmpty(item.ImageUrl))
+                                {
+                                    <img src="@item.ImageUrl" width="60" height="60" style="object-fit:cover; border-radius:5px;" />
+                                }
+                                else
+                                {
+                                    <span class="badge badge-secondary">Resim Yok</span>
+                                }
+                            </td>
+
+                            <td>@item.Title</td>
+
+                            <td>
+                                @if (!string.IsNullOrEmpty(item.Description) && item.Description.Length > 50)
+                                {
+                                    @item.Description.Substring(0, 50) <text>...</text>
+                                }
+                                else
+                                {
+                                    @item.Description
+                                }
+                            </td>
+
+                            <td>@item.Price ₺</td>
+
+                            <td>
+                                @if (item.Category != null)
+                                {
+                                    <span class="badge badge-primary">@item.Category.Name</span>
+                                }
+                                else
+                                {
+                                    <span class="text-danger">Yok</span>
+                                }
+                            </td>
+
+                            <td>
+                                <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-warning btn-sm" title="Düzenle">
+                                    <i class="fas fa-pen"></i>
+                                </a>
+                                <a href="javascript:void(0);" onclick="kursSil(@item.Id, this)" class="btn btn-danger btn-sm">
+                                    <i class="fas fa-trash"></i>
+                                </a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+@section Scripts {
+    <script>
+        function kursSil(id, buton) {
+            Swal.fire({
+                title: 'Kursu Sil?',
+                text: "Bu işlem geri alınamaz!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Evet, Sil'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: '/Courses/DeleteAjax/' + id,
+                        type: 'POST',
+                        success: function (data) {
+                            if (data.success) {
+                                $(buton).closest('tr').fadeOut(500, function() {
+                                    $(this).remove();
+                                });
+                                Swal.fire('Silindi!', data.message, 'success');
+                            } else {
+                                Swal.fire('Hata!', data.message, 'error');
+                            }
+                        },
+                        error: function () {
+                            Swal.fire('Hata!', 'Sunucu hatası.', 'error');
+                        }
+                    });
+                }
+            })
+        }
+    </script>
+}

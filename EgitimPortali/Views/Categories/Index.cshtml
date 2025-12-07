@@ -1,0 +1,84 @@
+﻿@model IEnumerable<EgitimPortali.Models.Category>
+
+@{
+    ViewData["Title"] = "Index";
+}
+
+<h1>Index</h1>
+
+<p>
+    <a asp-action="Create">Create New</a>
+</p>
+<table class="table">
+    <thead>
+        <tr>
+            <th>
+                @Html.DisplayNameFor(model => model.Name)
+            </th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+@foreach (var item in Model) {
+        <tr>
+            <td>
+                @Html.DisplayFor(modelItem => item.Name)
+            </td>
+            <td>
+                <a asp-action="Edit" asp-route-id="@item.Id">Edit</a> |
+                <a asp-action="Details" asp-route-id="@item.Id">Details</a> |
+                    <a href="javascript:void(0);" onclick="kategoriSil(@item.Id, this)" class="btn btn-danger btn-sm" title="Sil">
+                        <i class="fas fa-trash"></i>
+                    </a>
+            </td>
+        </tr>
+}
+    </tbody>
+</table>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+@section Scripts {
+    <script>
+        function kategoriSil(id, buton) {
+            // 1. Kullanıcıya sor: Emin misin?
+            Swal.fire({
+                title: 'Emin misiniz?',
+                text: "Bu kategoriyi silerseniz geri alamazsınız!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Evet, Sil!',
+                cancelButtonText: 'Vazgeç'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // 2. Evet derse AJAX isteği gönder
+                    $.ajax({
+                        url: '/Categories/DeleteAjax/' + id,
+                        type: 'POST',
+                        success: function (data) {
+                            if (data.success) {
+                                // 3. Başarılıysa tablo satırını (tr) animasyonla kaldır
+                                $(buton).closest('tr').fadeOut(500, function() {
+                                    $(this).remove();
+                                });
+
+                                // Başarı mesajı göster
+                                Swal.fire(
+                                    'Silindi!',
+                                    data.message,
+                                    'success'
+                                );
+                            } else {
+                                Swal.fire('Hata!', data.message, 'error');
+                            }
+                        },
+                        error: function () {
+                            Swal.fire('Hata!', 'Sunucu ile iletişim kurulamadı.', 'error');
+                        }
+                    });
+                }
+            })
+        }
+    </script>
+}
