@@ -13,24 +13,24 @@ namespace EgitimPortali.Controllers
 {
     public class CategoriesController : Controller
     {
-        // ARTIK DBCONTEXT YOK, IREPOSITORY VAR
+        
         private readonly IRepository<Category> _categoryRepo;
 
-        // Constructor'da Repository istiyoruz
+      
         public CategoriesController(IRepository<Category> categoryRepo)
         {
             _categoryRepo = categoryRepo;
         }
 
-        // GET: Categories
+       
         public IActionResult Index()
         {
-            // _context.Categories.ToListAsync() yerine:
+          
             var categories = _categoryRepo.GetAll();
             return View(categories);
         }
 
-        // GET: Categories/Details/5
+      
         public IActionResult Details(int id)
         {
             var category = _categoryRepo.GetById(id);
@@ -42,30 +42,30 @@ namespace EgitimPortali.Controllers
             return View(category);
         }
 
-        // GET: Categories/Create
+        
         public IActionResult Create()
         {
             return View();
         }
 
-        // POST: Categories/Create
+      
         [HttpPost]
         [ValidateAntiForgeryToken]
         public IActionResult Create([Bind("Id,Name")] Category category)
         {
-            // Kategori eklerken "Courses" listesi boş diye hata vermesin
+      
             ModelState.Remove("Courses");
 
             if (ModelState.IsValid)
             {
-                // _context.Add yerine:
+             
                 _categoryRepo.Add(category);
                 return RedirectToAction(nameof(Index));
             }
             return View(category);
         }
 
-        // GET: Categories/Edit/5
+ 
         public IActionResult Edit(int id)
         {
             var category = _categoryRepo.GetById(id);
@@ -76,7 +76,7 @@ namespace EgitimPortali.Controllers
             return View(category);
         }
 
-        // POST: Categories/Edit/5
+      
         [HttpPost]
         [ValidateAntiForgeryToken]
         public IActionResult Edit(int id, [Bind("Id,Name")] Category category)
@@ -92,7 +92,7 @@ namespace EgitimPortali.Controllers
             {
                 try
                 {
-                    // _context.Update yerine:
+                
                     _categoryRepo.Update(category);
                 }
                 catch (Exception)
@@ -110,9 +110,7 @@ namespace EgitimPortali.Controllers
             }
             return View(category);
         }
-
-        // SİLME İŞLEMİ (AJAX İLE YAPILDIĞI İÇİN ESKİ DELETE SAYFALARINI KALDIRDIK)
-        // Yönergeye uygun olan AJAX metodumuz:
+//AJAX 
         [HttpPost]
         public IActionResult DeleteAjax(int id)
         {
@@ -122,7 +120,7 @@ namespace EgitimPortali.Controllers
                 return Json(new { success = false, message = "Kategori bulunamadı!" });
             }
 
-            // Repository üzerinden siliyoruz
+            
             _categoryRepo.Delete(id);
 
             return Json(new { success = true, message = "Kategori başarıyla silindi." });
@@ -131,12 +129,11 @@ namespace EgitimPortali.Controllers
         [HttpPost]
         public IActionResult CreateAjax(Category category)
         {
-            // Modelde "Courses" listesi zorunlu görünüyor ama boş gelebilir, hatayı siliyoruz
             ModelState.Remove("Courses");
 
             if (ModelState.IsValid)
             {
-                _categoryRepo.Add(category); // Repository ile ekle
+                _categoryRepo.Add(category); 
                 return Json(new { success = true, message = "Kategori başarıyla eklendi! 🎉" });
             }
 

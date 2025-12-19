@@ -1,30 +1,51 @@
-﻿@model EgitimPortali.Models.Users
+﻿@model EgitimPortali.Models.RegisterViewModel
+
 @{
-    Layout = "_FrontLayout";
+    ViewData["Title"] = "Kayıt Ol";
+    Layout = "_FrontLayout"; 
 }
- <div class="container mt-5">
+
+<div class="container mt-5">
     <div class="row justify-content-center">
         <div class="col-md-6">
             <div class="card shadow">
                 <div class="card-header bg-primary text-white">
-                    <h3 class="card-title text-center">Kayıt Ol</h3>
+                    <h3 class="card-title text-center">Aramıza Katıl</h3>
                 </div>
                 <div class="card-body">
+
+                    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
                     <form asp-action="Register" method="post">
+
                         <div class="mb-3">
-                            <label>Ad Soyad</label>
-                            <input asp-for="FullName" class="form-control" required />
+                            <label class="form-label">Ad Soyad</label>
+                            <input asp-for="FullName" class="form-control" placeholder="Adınız Soyadınız" />
+                            <span asp-validation-for="FullName" class="text-danger"></span>
                         </div>
+
                         <div class="mb-3">
-                            <label>Email Adresi</label>
-                            <input asp-for="Email" type="email" class="form-control" required />
+                            <label class="form-label">Email Adresi</label>
+                            <input asp-for="Email" class="form-control" placeholder="ornek@email.com" />
                             <span asp-validation-for="Email" class="text-danger"></span>
                         </div>
+
                         <div class="mb-3">
-                            <label>Şifre</label>
-                            <input asp-for="Password" type="password" class="form-control" required />
+                            <label class="form-label">Şifre</label>
+                            <input asp-for="Password" type="password" class="form-control" placeholder="******" />
+                            <span asp-validation-for="Password" class="text-danger"></span>
                         </div>
-                        <button type="submit" class="btn btn-primary w-100">Kayıt Ol</button>
+
+                        <div class="mb-3">
+                            <label class="form-label">Şifre Tekrar</label>
+                            <input asp-for="ConfirmPassword" type="password" class="form-control" placeholder="******" />
+                            <span asp-validation-for="ConfirmPassword" class="text-danger"></span>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">Kayıt Ol</button>
+                        </div>
+
                     </form>
                 </div>
                 <div class="card-footer text-center">

@@ -1,22 +1,21 @@
-﻿using EgitimPortali.Models;
+﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore; 
 using Microsoft.EntityFrameworkCore;
-using EgitimPortali.Models; // Buraya kendi proje ismimi yazıyorum
+using EgitimPortali.Models;
 
 namespace EgitimPortali.Data
 {
-    public class ApplicationDbContext : DbContext
+    // DİKKAT: Artık DbContext yerine IdentityDbContext'ten miras alıyoruz
+    public class ApplicationDbContext : IdentityDbContext
     {
-        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options)
+        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
+            : base(options)
         {
         }
 
-        // İşte modellerini buraya ekliyoruz. 
-        // Her biri veritabanında bir tablo olacak.
+        public DbSet<Course> Courses { get; set; }
+        public DbSet<Category> Categories { get; set; }
+        public DbSet<Enrollment> Enrollments { get; set; }
 
-
-        public DbSet<Course> Courses { get; set; }      // Kurslar tablosu
-        public DbSet<Category> Categories { get; set; } // Kategoriler tablosu
-        public DbSet<Enrollment> Enrollments { get; set; } //Satın almalar tablosu
-        public DbSet<Users> Users { get; set; }         // Kullanıcılar tablosu
+     
     }
 }

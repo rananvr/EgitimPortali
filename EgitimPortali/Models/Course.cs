@@ -8,23 +8,31 @@ namespace EgitimPortali.Models
         [Key]
         public int Id { get; set; }
 
-        [Required(ErrorMessage = "Eğitim adı zorunludur.")]
+        [Required]
+        [Display(Name = "Kurs Başlığı")]
         public string Title { get; set; }
 
-        public string Description { get; set; } // Açıklama
+        [Required]
+        [Display(Name = "Açıklama")]
+        public string Description { get; set; }
 
-        public decimal Price { get; set; } // Fiyat
+        [Required]
+        [Display(Name = "Fiyat")]
+        public decimal Price { get; set; }
 
-        public string? ImageUrl { get; set; } // Eğitim görseli (Dosya yolu tutulacak)
+        [Display(Name = "Kapak Resmi")]
+        public string? ImageUrl { get; set; }
 
-        // İlişki: Hangi kategoriye ait?
+        
+        public string? InstructorId { get; set; }
+
+       
+        public DateTime CreatedDate { get; set; } = DateTime.Now;
+
+      
         public int CategoryId { get; set; }
 
         [ForeignKey("CategoryId")]
         public virtual Category? Category { get; set; }
-
-        // Hangi Eğitmen? (Users tablosuna bağlanıyoruz)
-        public int? InstructorId { get; set; }
-        public virtual Users? Instructor { get; set; }
     }
 }

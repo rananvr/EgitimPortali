@@ -1,40 +1,38 @@
-﻿@model EgitimPortali.Models.Users
+﻿@model EgitimPortali.Models.RegisterViewModel
 @{
-    Layout = "_FrontLayout";
+    ViewData["Title"] = "Eğitmen Başvurusu";
+    Layout = "_AuthLayout";
 }
 
 <div class="container mt-5">
     <div class="row justify-content-center">
         <div class="col-md-6">
-            <div class="card shadow border-warning">
-                <div class="card-header bg-warning text-dark">
-                    <h3 class="card-title text-center"><i class="fas fa-chalkboard-teacher"></i> Eğitmen Başvurusu</h3>
+            <div class="card shadow border-left-primary">
+                <div class="card-header bg-gradient-primary text-white">
+                    <h4 class="m-0 font-weight-bold">Eğitmen Olarak Kayıt Ol</h4>
                 </div>
                 <div class="card-body">
-                    <div class="alert alert-info">
-                        Eğitmen olarak kayıt olduğunuzda kurs oluşturma paneline erişim hakkı kazanırsınız.
-                    </div>
-
                     <form asp-action="RegisterInstructor" method="post">
                         <div class="mb-3">
                             <label>Ad Soyad</label>
-                            <input asp-for="FullName" class="form-control" placeholder="Örn: Dr. Ali Yılmaz" required />
+                            <input asp-for="FullName" class="form-control" required />
                         </div>
                         <div class="mb-3">
-                            <label>Email Adresi</label>
-                            <input asp-for="Email" type="email" class="form-control" required />
-                            <span asp-validation-for="Email" class="text-danger"></span>
+                            <label>Email</label>
+                            <input asp-for="Email" class="form-control" required />
                         </div>
                         <div class="mb-3">
                             <label>Şifre</label>
                             <input asp-for="Password" type="password" class="form-control" required />
                         </div>
-
-                        <button type="submit" class="btn btn-warning w-100 fw-bold">Eğitmen Olarak Kayıt Ol</button>
+                        <div class="mb-3">
+                            <label>Şifre Tekrar</label>
+                            <input asp-for="ConfirmPassword" type="password" class="form-control" required />
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-block">
+                            <i class="fas fa-chalkboard-teacher"></i> Eğitmen Hesabı Oluştur
+                        </button>
                     </form>
-                </div>
-                <div class="card-footer text-center">
-                    <small>Zaten hesabın var mı? <a asp-action="Login">Giriş Yap</a></small>
                 </div>
             </div>
         </div>

@@ -1,131 +1,168 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.EntityFrameworkCore;
+using EgitimPortali.Data;
 using EgitimPortali.Models;
-using EgitimPortali.Repositories;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Authorization;
 
 namespace EgitimPortali.Controllers
 {
+    [Authorize(Roles = "Admin, Egitmen")]
     public class CoursesController : Controller
     {
-        // İKİ REPOSITORY LAZIM: Biri Kurslar için, biri Kategoriler için (Dropdown için)
-        private readonly IRepository<Course> _courseRepo;
-        private readonly IRepository<Category> _categoryRepo;
+        private readonly ApplicationDbContext _context;
+        private readonly IWebHostEnvironment _webHostEnvironment; 
+        private readonly UserManager<IdentityUser> _userManager;  
 
-        public CoursesController(IRepository<Course> courseRepo, IRepository<Category> categoryRepo)
+        public CoursesController(ApplicationDbContext context, IWebHostEnvironment webHostEnvironment, UserManager<IdentityUser> userManager)
         {
-            _courseRepo = courseRepo;
-            _categoryRepo = categoryRepo;
+            _context = context;
+            _webHostEnvironment = webHostEnvironment;
+            _userManager = userManager;
         }
 
-        // 1. LİSTELEME
-        public IActionResult Index()
+        // 1. KURSLARI LİSTELE
+        public async Task<IActionResult> Index()
         {
-            // "Category" diyerek ilişkili tabloyu da getiriyoruz
-            var kurslar = _courseRepo.GetAll("Category");
+            var kurslar = await _context.Courses.Include(c => c.Category).ToListAsync();
             return View(kurslar);
         }
 
-        // 2. DETAY
-        public IActionResult Details(int id)
-        {
-            var course = _courseRepo.GetById(id);
-            if (course == null) return NotFound();
-            return View(course);
-        }
-
-        // 3. EKLEME (Sayfa)
+        // 2. KURS EKLEME SAYFASI (GET)
         public IActionResult Create()
         {
-            // Dropdown için kategorileri Repository'den çekiyoruz
-            ViewData["CategoryId"] = new SelectList(_categoryRepo.GetAll(), "Id", "Name");
+            if (!_context.Categories.Any())
+            {
+                _context.Categories.Add(new Category { Name = "Genel Eğitimler" });
+                _context.SaveChanges();
+            }
+
+            ViewData["CategoryId"] = new SelectList(_context.Categories, "Id", "Name");
             return View();
         }
 
-        // 3. EKLEME İŞLEMİ (POST)
+        // --- DÜZENLEME SAYFASI (GET) ---
+        public async Task<IActionResult> Edit(int? id)
+        {
+            if (id == null) return NotFound();
+
+            var course = await _context.Courses.FindAsync(id);
+            if (course == null) return NotFound();
+
+            ViewData["CategoryId"] = new SelectList(_context.Categories, "Id", "Name", course.CategoryId);
+            return View(course);
+        }
+
+        // --- DÜZENLEME İŞLEMİ (POST) ---
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Edit(int id, Course course, IFormFile? resimDosyasi)
+        {
+            if (id != course.Id) return NotFound();
+
+            ModelState.Remove("ImageUrl");
+            ModelState.Remove("InstructorId");
+            ModelState.Remove("Category");
+
+            if (ModelState.IsValid)
+            {
+                try
+                {
+                    var existingCourse = await _context.Courses.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id);
+
+                    if (resimDosyasi != null)
+                    {
+                        string uzanti = Path.GetExtension(resimDosyasi.FileName);
+                        string yeniIsim = Guid.NewGuid().ToString() + uzanti;
+                        string yol = Path.Combine(_webHostEnvironment.WebRootPath, "img", yeniIsim);
+                        using (var stream = new FileStream(yol, FileMode.Create)) { await resimDosyasi.CopyToAsync(stream); }
+                        course.ImageUrl = "/img/" + yeniIsim;
+                    }
+                    else
+                    {
+                        course.ImageUrl = existingCourse.ImageUrl;
+                    }
+
+                    course.InstructorId = existingCourse.InstructorId;
+                    course.CreatedDate = existingCourse.CreatedDate;
+
+                    _context.Update(course);
+                    await _context.SaveChangesAsync();
+                }
+                catch (DbUpdateConcurrencyException)
+                {
+                    if (!_context.Courses.Any(e => e.Id == course.Id)) return NotFound();
+                    else throw;
+                }
+                return RedirectToAction(nameof(Index));
+            }
+            ViewData["CategoryId"] = new SelectList(_context.Categories, "Id", "Name", course.CategoryId);
+            return View(course);
+        }
+
+        // --- AJAX SİLME İŞLEMİ (JSON DÖNER) ---
+        [HttpPost]
+        public async Task<IActionResult> DeleteCourseAjax(int id)
+        {
+            var course = await _context.Courses.FindAsync(id);
+            if (course == null)
+            {
+                return Json(new { success = false, message = "Kurs bulunamadı." });
+            }
+
+            _context.Courses.Remove(course);
+            await _context.SaveChangesAsync();
+
+            return Json(new { success = true, message = "Kurs başarıyla silindi." });
+        }
+
+
+        // 3. KURS EKLEME İŞLEMİ (POST)
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(Course course, IFormFile? resimDosyasi)
         {
-            // Hata vermesin diye zorunlu alanlardan bunları çıkarıyoruz
+            var user = await _userManager.GetUserAsync(User);
+
+            ModelState.Remove("ImageUrl");
+            ModelState.Remove("InstructorId");
             ModelState.Remove("Category");
-            ModelState.Remove("Instructor"); // <--- YENİ: Eğitmen nesnesi boş geleceği için hatayı siliyoruz
 
             if (ModelState.IsValid)
             {
-                // --- 1. RESİM YÜKLEME İŞLEMİ (Aynı kalıyor) ---
+                // A) RESİM YÜKLEME
                 if (resimDosyasi != null)
                 {
                     string uzanti = Path.GetExtension(resimDosyasi.FileName);
                     string yeniIsim = Guid.NewGuid().ToString() + uzanti;
-                    string yol = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/img", yeniIsim);
+                    string klasor = Path.Combine(_webHostEnvironment.WebRootPath, "img");
 
-                    using (var stream = new FileStream(yol, FileMode.Create))
+                    if (!Directory.Exists(klasor)) Directory.CreateDirectory(klasor);
+
+                    using (var stream = new FileStream(Path.Combine(klasor, yeniIsim), FileMode.Create))
                     {
                         await resimDosyasi.CopyToAsync(stream);
                     }
+
                     course.ImageUrl = "/img/" + yeniIsim;
                 }
-
-                // --- 2. EĞİTMENİ EKLEME (SENİN İSTEDİĞİN KISIM BURASI) ---
-                // O an sisteme giriş yapmış kişinin ID'sini Session'dan alıyoruz
-                int? egitmenId = HttpContext.Session.GetInt32("UserId");
-
-                if (egitmenId != null)
+                else
                 {
-                    course.InstructorId = egitmenId; // Kursun sahibini belirliyoruz
+                    course.ImageUrl = "/img/default.jpg"; 
                 }
-                // ---------------------------------------------------------
 
-                _courseRepo.Add(course); // Veritabanına kaydediyoruz
+                course.InstructorId = user.Id; 
+                course.CreatedDate = DateTime.Now;
+
+                _context.Add(course);
+                await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
             }
 
-            // Hata varsa formu tekrar doldur
-            ViewData["CategoryId"] = new SelectList(_categoryRepo.GetAll(), "Id", "Name", course.CategoryId);
+           
+            ViewData["CategoryId"] = new SelectList(_context.Categories, "Id", "Name", course.CategoryId);
             return View(course);
-        }
-
-        // 4. GÜNCELLEME (Sayfa)
-        public IActionResult Edit(int id)
-        {
-            var course = _courseRepo.GetById(id);
-            if (course == null) return NotFound();
-
-            ViewData["CategoryId"] = new SelectList(_categoryRepo.GetAll(), "Id", "Name", course.CategoryId);
-            return View(course);
-        }
-
-        // 4. GÜNCELLEME (İşlem)
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public IActionResult Edit(int id, Course course)
-        {
-            if (id != course.Id) return NotFound();
-
-            ModelState.Remove("Category");
-
-            if (ModelState.IsValid)
-            {
-                // Güncelleme yaparken mevcut resim kaybolmasın diye basit update
-                _courseRepo.Update(course);
-                return RedirectToAction(nameof(Index));
-            }
-            ViewData["CategoryId"] = new SelectList(_categoryRepo.GetAll(), "Id", "Name", course.CategoryId);
-            return View(course);
-        }
-
-        // 5. AJAX SİLME METODU (İşte istediğin yer)
-        [HttpPost]
-        public IActionResult DeleteAjax(int id)
-        {
-            var course = _courseRepo.GetById(id);
-            if (course == null)
-            {
-                return Json(new { success = false, message = "Kurs bulunamadı!" });
-            }
-
-            _courseRepo.Delete(id);
-            return Json(new { success = true, message = "Kurs başarıyla silindi." });
         }
     }
 }

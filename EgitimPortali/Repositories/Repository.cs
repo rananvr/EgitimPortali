@@ -1,4 +1,4 @@
-﻿using EgitimPortali.Data; // Kendi proje isminle değiştir
+﻿using EgitimPortali.Data; 
 using Microsoft.EntityFrameworkCore;
 
 namespace EgitimPortali.Repositories
@@ -17,7 +17,6 @@ namespace EgitimPortali.Repositories
         {
             IQueryable<T> query = _dbSet;
 
-            // Eğer ilişkili tablo istenmişse (örn: "Category") onu da dahil et
             if (!string.IsNullOrEmpty(includeProps))
             {
                 foreach (var includeProp in includeProps.Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries))

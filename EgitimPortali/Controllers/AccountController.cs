@@ -1,159 +1,117 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using EgitimPortali.Data;
+﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
 using EgitimPortali.Models;
+using System.Security.Claims;
 
 namespace EgitimPortali.Controllers
 {
     public class AccountController : Controller
     {
-        private readonly ApplicationDbContext _context;
+        private readonly UserManager<IdentityUser> _userManager;
+        private readonly SignInManager<IdentityUser> _signInManager;
+        private readonly RoleManager<IdentityRole> _roleManager;
 
-        public AccountController(ApplicationDbContext context)
+        public AccountController(UserManager<IdentityUser> userManager, SignInManager<IdentityUser> signInManager, RoleManager<IdentityRole> roleManager)
         {
-            _context = context;
+            _userManager = userManager;
+            _signInManager = signInManager;
+            _roleManager = roleManager;
         }
 
-        // 1. KAYIT OL (SAYFAYI GÖSTER)
-        public IActionResult Register()
-        {
-            return View();
-        }
+        // --- GİRİŞ YAP ---
+        public IActionResult Login() => View();
 
-        // 1. KAYIT OL (İŞLEMİ YAP)
         [HttpPost]
-        public IActionResult Register(Users user)
+        public async Task<IActionResult> Login(LoginViewModel model)
         {
-            // Yeni kayıt olan herkes "Ogrenci" olsun
-            user.Role = "Ogrenci";
+            if (!ModelState.IsValid) return View(model);
 
-            // Bu email veritabanında var mı kontrolü
-            if (_context.Users.Any(x => x.Email == user.Email))
-            {
-                ModelState.AddModelError("Email", "Bu email adresi zaten kullanılıyor!");
-                return View(user);
-            }
-
-            if (ModelState.IsValid)
-            {
-                _context.Users.Add(user);
-                _context.SaveChanges();
-                return RedirectToAction("Login");
-            }
-            return View(user);
-        }
-
-        // 2. GİRİŞ YAP (SAYFAYI GÖSTER)
-        public IActionResult Login()
-        {
-            return View();
-        }
-
-        // 2. GİRİŞ YAP (İŞLEMİ YAP)
-        [HttpPost]
-        public IActionResult Login(string email, string password)
-        {
-            // Veritabanında bu email ve şifreye sahip biri var mı?
-            var user = _context.Users.FirstOrDefault(x => x.Email == email && x.Password == password);
-
+            var user = await _userManager.FindByEmailAsync(model.Email);
             if (user != null)
             {
-                // Kullanıcı bulundu! Oturum (Session) başlatalım.
-                HttpContext.Session.SetInt32("UserId", user.Id);
-                HttpContext.Session.SetString("UserRole", user.Role);
-                HttpContext.Session.SetString("UserName", user.FullName);
-
-                // ROL KONTROLÜ: Eğitmense Panele, Öğrenciyse Anasayfaya
-                if (user.Role == "Egitmen")
-                {
-                    return RedirectToAction("Index", "Courses"); // Admin Paneli
-                }
-                else
-                {
-                    return RedirectToAction("Index", "Home"); // Vitrin
-                }
+                var result = await _signInManager.PasswordSignInAsync(user, model.Password, false, false);
+                if (result.Succeeded) return RedirectToAction("Index", "Home");
             }
 
             ViewBag.Hata = "Email veya şifre hatalı!";
-            return View();
+            return View(model);
         }
-        // --- EĞİTMEN KAYIT KISMI ---
 
-        // 1. Eğitmen Kayıt Sayfasını Göster
+        // --- KAYIT OL ---
+        public IActionResult Register() => View();
+
+        [HttpPost]
+        public async Task<IActionResult> Register(RegisterViewModel model)
+        {
+            if (!ModelState.IsValid) return View(model);
+
+            var user = new IdentityUser { UserName = model.Email, Email = model.Email };
+            var result = await _userManager.CreateAsync(user, model.Password);
+
+            if (result.Succeeded)
+            {
+                // Rolleri oluştur (eğer yoksa)
+                if (!await _roleManager.RoleExistsAsync("Ogrenci")) await _roleManager.CreateAsync(new IdentityRole("Ogrenci"));
+                if (!await _roleManager.RoleExistsAsync("Egitmen")) await _roleManager.CreateAsync(new IdentityRole("Egitmen"));
+                if (!await _roleManager.RoleExistsAsync("Admin")) await _roleManager.CreateAsync(new IdentityRole("Admin"));
+
+                await _userManager.AddToRoleAsync(user, "Ogrenci");
+                await _userManager.AddClaimAsync(user, new Claim("FullName", model.FullName));
+
+                return RedirectToAction("Login");
+            }
+            return View(model);
+        }
+
+        public async Task<IActionResult> Logout()
+        {
+            await _signInManager.SignOutAsync();
+            return RedirectToAction("Login", "Account");
+        }
+        [HttpGet]
+        public async Task<IActionResult> Profile()
+        {
+            
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null) return RedirectToAction("Login");
+
+        
+            return View(user);
+        }
+        // --- EĞİTMEN OLMA SAYFASI (GET) ---
+        [HttpGet]
         public IActionResult RegisterInstructor()
         {
             return View();
         }
 
-        // 2. Eğitmen Kaydını İşle
+        // --- EĞİTMEN OLMA İŞLEMİ (POST) ---
         [HttpPost]
-        public IActionResult RegisterInstructor(Users user)
+        public async Task<IActionResult> RegisterInstructor(RegisterViewModel model)
         {
+       
+            var user = new IdentityUser { UserName = model.Email, Email = model.Email };
+            var result = await _userManager.CreateAsync(user, model.Password);
 
-            // KONTROL: Aynı kontrolü buraya da ekliyoruz
-            if (_context.Users.Any(x => x.Email == user.Email))
+            if (result.Succeeded)
             {
-                ModelState.AddModelError("Email", "Bu email adresi zaten sistemde kayıtlı.");
-                return View(user);
-            }
+               
+                if (!await _roleManager.RoleExistsAsync("Egitmen"))
+                {
+                    await _roleManager.CreateAsync(new IdentityRole("Egitmen"));
+                }
 
-            // Burası kritik nokta: Rolü el ile "Egitmen" yapıyoruz.
-            user.Role = "Egitmen";
+              
+                await _userManager.AddToRoleAsync(user, "Egitmen");
 
-            if (ModelState.IsValid)
-            {
-                _context.Users.Add(user);
-                _context.SaveChanges();
+               
+                await _userManager.AddClaimAsync(user, new Claim("FullName", model.FullName));
 
-                // Kayıt başarılı, giriş sayfasına yönlendir
+            
                 return RedirectToAction("Login");
             }
-            return View(user);
-        }
-        // 3. ÇIKIŞ YAP
-        public IActionResult Logout()
-        {
-            HttpContext.Session.Clear(); // Oturumu temizle
-            return RedirectToAction("Index", "Home");
-        }
-        // --- PROFİL İŞLEMLERİ ---
 
-        // 1. Profil Sayfasını Göster
-        public IActionResult Profile()
-        {
-            // Giriş yapanın ID'sini bul
-            int? userId = HttpContext.Session.GetInt32("UserId");
-            if (userId == null) return RedirectToAction("Login");
-
-            // Veritabanından o kişiyi getir
-            var user = _context.Users.Find(userId);
-            return View(user);
-        }
-
-        // 2. Profil Güncelleme İşlemi
-        [HttpPost]
-        public IActionResult Profile(Users gelenUser)
-        {
-            // Veritabanındaki gerçek kullanıcıyı bul
-            var veritabanindakiUser = _context.Users.Find(gelenUser.Id);
-
-            if (veritabanindakiUser != null)
-            {
-                // Sadece izin verdiğimiz alanları güncelle
-                // (Email ve Rolü değiştirmiyoruz, güvenlik için sabit kalsın)
-                veritabanindakiUser.FullName = gelenUser.FullName;
-                veritabanindakiUser.Password = gelenUser.Password;
-
-                _context.SaveChanges();
-
-                // Session'daki ismi de güncelle ki menüde hemen değişsin
-                HttpContext.Session.SetString("UserName", veritabanindakiUser.FullName);
-
-                ViewBag.Mesaj = "Bilgileriniz başarıyla güncellendi! ✅";
-
-                return View(veritabanindakiUser);
-            }
-
-            return RedirectToAction("Login");
+            return View(model);
         }
     }
 }

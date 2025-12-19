@@ -1,21 +1,19 @@
 ﻿@model IEnumerable<EgitimPortali.Models.Course>
 
 @{
-    ViewData["Title"] = "Kurs Listesi";
+    ViewData["Title"] = "Kurs Yönetimi";
 }
 
-<h1 class="h3 mb-2 text-gray-800">Kurslar</h1>
-<p class="mb-4">Sistemdeki tüm kursları buradan yönetebilirsiniz.</p>
+<div class="d-sm-flex align-items-center justify-content-between mb-4">
+    <h1 class="h3 mb-0 text-gray-800">Kurs Listesi</h1>
+    <a asp-action="Create" class="d-none d-sm-inline-block btn btn-sm btn-primary shadow-sm">
+        <i class="fas fa-plus fa-sm text-white-50"></i> Yeni Kurs Ekle
+    </a>
+</div>
 
 <div class="card shadow mb-4">
-    <div class="card-header py-3 d-flex justify-content-between align-items-center">
-        <h6 class="m-0 font-weight-bold text-primary">Kurs Listesi</h6>
-        <a asp-action="Create" class="btn btn-primary btn-sm btn-icon-split">
-            <span class="icon text-white-50">
-                <i class="fas fa-plus"></i>
-            </span>
-            <span class="text">Yeni Kurs Ekle</span>
-        </a>
+    <div class="card-header py-3">
+        <h6 class="m-0 font-weight-bold text-primary">Mevcut Kurslar</h6>
     </div>
     <div class="card-body">
         <div class="table-responsive">
@@ -24,61 +22,47 @@
                     <tr>
                         <th>Resim</th>
                         <th>Başlık</th>
-                        <th>Açıklama</th>
-                        <th>Fiyat</th>
                         <th>Kategori</th>
+                        <th>Fiyat</th>
+                        <th>Tarih</th>
                         <th>İşlemler</th>
                     </tr>
                 </thead>
-
                 <tbody>
                     @foreach (var item in Model)
                     {
-                        <tr>
+                        <tr id="row_@item.Id">
                             <td>
                                 @if (!string.IsNullOrEmpty(item.ImageUrl))
                                 {
-                                    <img src="@item.ImageUrl" width="60" height="60" style="object-fit:cover; border-radius:5px;" />
-                                }
-                                else
-                                {
-                                    <span class="badge badge-secondary">Resim Yok</span>
+                                    <img src="@item.ImageUrl" width="50" height="50" style="object-fit:cover; border-radius:5px;" />
                                 }
                             </td>
-
                             <td>@item.Title</td>
-
                             <td>
-                                @if (!string.IsNullOrEmpty(item.Description) && item.Description.Length > 50)
+                                <span class="badge badge-info">
+                                    @(item.Category != null ? item.Category.Name : "Genel")
+                                </span>
+                            </td>
+                            <td>
+                                @if (item.Price == 0)
                                 {
-                                    @item.Description.Substring(0, 50) <text>...</text>
+                                    <span class="badge bg-success">Ücretsiz</span>
                                 }
                                 else
                                 {
-                                    @item.Description
+                                    @item.Price.ToString("C2")
                                 }
                             </td>
-
-                            <td>@item.Price ₺</td>
-
+                            <td>@item.CreatedDate.ToString("dd.MM.yyyy")</td>
                             <td>
-                                @if (item.Category != null)
-                                {
-                                    <span class="badge badge-primary">@item.Category.Name</span>
-                                }
-                                else
-                                {
-                                    <span class="text-danger">Yok</span>
-                                }
-                            </td>
-
-                            <td>
-                                <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-warning btn-sm" title="Düzenle">
-                                    <i class="fas fa-pen"></i>
+                                <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-warning btn-sm btn-circle" title="Düzenle">
+                                    <i class="fas fa-edit"></i>
                                 </a>
-                                <a href="javascript:void(0);" onclick="kursSil(@item.Id, this)" class="btn btn-danger btn-sm">
+
+                                <button onclick="silKurs(@item.Id)" class="btn btn-danger btn-sm btn-circle" title="Sil">
                                     <i class="fas fa-trash"></i>
-                                </a>
+                                </button>
                             </td>
                         </tr>
                     }
@@ -87,37 +71,46 @@
         </div>
     </div>
 </div>
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
 @section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
     <script>
-        function kursSil(id, buton) {
+        function silKurs(id) {
             Swal.fire({
-                title: 'Kursu Sil?',
-                text: "Bu işlem geri alınamaz!",
+                title: 'Emin misiniz?',
+                text: "Bu kurs kalıcı olarak silinecektir!",
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonColor: '#d33',
                 cancelButtonColor: '#3085d6',
-                confirmButtonText: 'Evet, Sil'
+                confirmButtonText: 'Evet, sil!',
+                cancelButtonText: 'İptal'
             }).then((result) => {
                 if (result.isConfirmed) {
+                    // AJAX İsteği Başlıyor
                     $.ajax({
-                        url: '/Courses/DeleteAjax/' + id,
-                        type: 'POST',
-                        success: function (data) {
-                            if (data.success) {
-                                $(buton).closest('tr').fadeOut(500, function() {
+                        type: "POST",
+                        url: "/Courses/DeleteCourseAjax", // Controller'daki metod
+                        data: { id: id },
+                        success: function (response) {
+                            if (response.success) {
+                                // 1. Başarılı mesajı göster
+                                Swal.fire(
+                                    'Silindi!',
+                                    response.message,
+                                    'success'
+                                );
+                                // 2. Tablodaki satırı animasyonla kaldır
+                                $("#row_" + id).fadeOut(500, function () {
                                     $(this).remove();
                                 });
-                                Swal.fire('Silindi!', data.message, 'success');
                             } else {
-                                Swal.fire('Hata!', data.message, 'error');
+                                Swal.fire('Hata', response.message, 'error');
                             }
                         },
                         error: function () {
-                            Swal.fire('Hata!', 'Sunucu hatası.', 'error');
+                            Swal.fire('Hata', 'Sunucu ile iletişim kurulamadı.', 'error');
                         }
                     });
                 }

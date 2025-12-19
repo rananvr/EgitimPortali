@@ -1,113 +1,120 @@
+using EgitimPortali.Data;
+using EgitimPortali.Hubs;
+using EgitimPortali.Models;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore; // Include için gerekli
-using EgitimPortali.Data; // Kendi proje ismine göre düzenle
-using EgitimPortali.Models; // Kendi proje ismine göre düzenle
+using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
 
 namespace EgitimPortali.Controllers
 {
     public class HomeController : Controller
     {
-        // 1. Veritabaný baðlantýsýný tanýmlýyoruz
         private readonly ApplicationDbContext _context;
+        private readonly UserManager<IdentityUser> _userManager;
+        private readonly IHubContext<SatisHub> _hubContext; 
 
-        public HomeController(ApplicationDbContext context)
+        public HomeController(ApplicationDbContext context, UserManager<IdentityUser> userManager, IHubContext<SatisHub> hubContext)
         {
             _context = context;
+            _userManager = userManager;
+            _hubContext = hubContext; 
         }
 
-        public IActionResult Index()
+        // 1. ANA SAYFA: Giriþ yapmýþsa kayýtlý kurslarý göstermez
+        public async Task<IActionResult> Index()
         {
-            // GÜVENLÝK KONTROLÜ: Giriþ yapmamýþsa Login sayfasýna þutla!
-            if (HttpContext.Session.GetInt32("UserId") == null)
+            var userId = _userManager.GetUserId(User);
+
+         
+            var kurslarQuery = _context.Courses.Include(c => c.Category).AsQueryable();
+
+            if (userId != null)
             {
-                return RedirectToAction("Login", "Account");
+                var kayitliKursIdleri = await _context.Enrollments
+                                                .Where(x => x.UserId == userId)
+                                                .Select(x => x.CourseId)
+                                                .ToListAsync();
+
+                kurslarQuery = kurslarQuery.Where(c => !kayitliKursIdleri.Contains(c.Id));
             }
 
-            // Hem Kategoriyi hem de Eðitmeni (Instructor) dahil ederek getiriyoruz
-            var kurslar = _context.Courses
-                .Include(c => c.Category)
-                .Include(c => c.Instructor)
-                .ToList();
+            var kurslar = await kurslarQuery.ToListAsync();
             return View(kurslar);
         }
-        // KURS DETAY SAYFASI
-        public IActionResult Details(int id)
+
+        // 2. KURSLARIM SAYFASI: Sadece kayýt olunanlarý gösterir
+        [Authorize]
+        public async Task<IActionResult> MyCourses()
         {
-            // Güvenlik kontrolü...
-            if (HttpContext.Session.GetInt32("UserId") == null) return RedirectToAction("Login", "Account");
+            var userId = _userManager.GetUserId(User);
 
-            var course = _context.Courses
+            var userEnrollments = await _context.Enrollments
+                                                .Include(e => e.Course) 
+                                                .Where(e => e.UserId == userId)
+                                                .ToListAsync();
+
+            var myCourses = new List<Course>();
+            foreach (var enrollment in userEnrollments)
+            {
+                if (enrollment.Course != null)
+                {
+                    myCourses.Add(enrollment.Course);
+                }
+            }
+
+            return View(myCourses);
+        }
+
+        public IActionResult Privacy()
+        {
+            return View();
+        }
+
+        // --- DETAY SAYFASI ---
+        [Authorize]
+        public async Task<IActionResult> Details(int? id)
+        {
+            if (id == null) return NotFound();
+
+            var course = await _context.Courses
                 .Include(c => c.Category)
-                .Include(c => c.Instructor) // <-- ÝÞTE BUNU EKLEYECEKSÝN (Eðitmeni dahil et)
-                .FirstOrDefault(c => c.Id == id);
+                .FirstOrDefaultAsync(m => m.Id == id);
 
-            if (course == null) return RedirectToAction("Index");
+            if (course == null) return NotFound();
 
             return View(course);
         }
-        // HAKKIMIZDA SAYFASI METODU
-        public IActionResult Privacy()
-        {
-            // Güvenlik: Giriþ yapmamýþsa Login'e gönder
-            if (HttpContext.Session.GetInt32("UserId") == null)
-            {
-                return RedirectToAction("Login", "Account");
-            }
 
-            return View();
-        }
-        // 1. SATIN ALMA ÝÞLEMÝ
-        [HttpPost] // Bu iþlem gizli yapýlmalý (Post)
-        public IActionResult BuyCourse(int id)
+        // --- SATIN ALMA (KAYIT OLMA) ÝÞLEMÝ ---
+        [HttpPost]
+        [Authorize]
+        public async Task<IActionResult> Enroll(int id)
         {
-            // Önce kullanýcý giriþ yapmýþ mý kontrol et
-            int? userId = HttpContext.Session.GetInt32("UserId");
-            if (userId == null)
-            {
-                // Giriþ yapmamýþsa Login sayfasýna yolla
-                return RedirectToAction("Login", "Account");
-            }
+            var userId = _userManager.GetUserId(User);
 
-            // Daha önce almýþ mý kontrol et?
-            var varMi = _context.Enrollments.Any(x => x.UserId == userId && x.CourseId == id);
+            var varMi = await _context.Enrollments
+                .AnyAsync(x => x.UserId == userId && x.CourseId == id);
+            await _hubContext.Clients.All.SendAsync("SatisYapildi", "Yeni bir kurs kaydý oluþturuldu!");
             if (varMi)
             {
-                // Zaten almýþsa direkt kurslarýma gönder
                 return RedirectToAction("MyCourses");
             }
 
-            // Satýn almayý kaydet
+            // Yeni Kayýt Oluþtur
             var yeniKayit = new Enrollment
             {
-                UserId = userId.Value,
                 CourseId = id,
+                UserId = userId,
                 EnrollmentDate = DateTime.Now
             };
 
             _context.Enrollments.Add(yeniKayit);
-            _context.SaveChanges();
+            await _context.SaveChangesAsync();
 
-            // Ýþlem bitince "Kurslarým" sayfasýna git
+          
             return RedirectToAction("MyCourses");
-        }
-
-        // 2. KURSLARIM SAYFASI (Satýn aldýklarýmý listele)
-        public IActionResult MyCourses()
-        {
-            int? userId = HttpContext.Session.GetInt32("UserId");
-            if (userId == null)
-            {
-                return RedirectToAction("Login", "Account");
-            }
-
-            // Giriþ yapan kiþinin aldýðý kurslarý bul (Include ile kurs detaylarýný da getir)
-            var alinanKurslar = _context.Enrollments
-                .Include(x => x.Course) // Kurs detayýný getir
-                .Where(x => x.UserId == userId) // Sadece bu kullanýcýnýnkileri al
-                .Select(x => x.Course) // Bize Enrollment deðil, içindeki Course lazým
-                .ToList();
-
-            return View(alinanKurslar);
         }
     }
 }

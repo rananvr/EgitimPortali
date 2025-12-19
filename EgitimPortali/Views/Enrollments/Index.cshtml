@@ -1,0 +1,53 @@
+﻿@model IEnumerable<EgitimPortali.Models.Enrollment>
+
+@{
+    ViewData["Title"] = "Satın Almalar";
+    Layout = "_Layout"; 
+}
+
+<div class="card shadow mb-4">
+    <div class="card-header py-3">
+        <h6 class="m-0 font-weight-bold text-primary">Kurs Kayıt Listesi</h6>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-bordered" width="100%" cellspacing="0">
+                <thead>
+                    <tr>
+                        <th>Öğrenci Email</th>
+                        <th>Satın Alınan Kurs</th>
+                        <th>Kayıt Tarihi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model)
+                    {
+                        <tr>
+                            <td>
+                                @if (item.User != null)
+                                {
+                                    <span class="text-dark fw-bold">@item.User.Email</span>
+                                }
+                                else
+                                {
+                                    <span class="text-danger">Silinmiş Kullanıcı</span>
+                                }
+                            </td>
+                            <td>
+                                @if (item.Course != null)
+                                {
+                                    <span class="badge bg-info text-white">@item.Course.Title</span>
+                                }
+                                else
+                                {
+                                    <span class="text-danger">Silinmiş Kurs</span>
+                                }
+                            </td>
+                            <td>@item.EnrollmentDate.ToString("dd.MM.yyyy HH:mm")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

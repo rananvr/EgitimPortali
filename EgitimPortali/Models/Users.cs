@@ -16,8 +16,7 @@ namespace EgitimPortali.Models
         [Required(ErrorMessage = "Şifre zorunludur")]
         public string Password { get; set; }
 
-        // İŞTE SİHİRLİ ALAN BURASI
-        // Kayıt olurken varsayılan olarak "Ogrenci" atayacağız.
+
         public string Role { get; set; } = "Ogrenci";
     }
 }

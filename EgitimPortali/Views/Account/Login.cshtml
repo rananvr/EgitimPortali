@@ -1,4 +1,5 @@
-﻿@{
+﻿@model EgitimPortali.Models.LoginViewModel
+@{
     Layout = "_FrontLayout";
 }
 
@@ -17,14 +18,18 @@
 
                     <form asp-action="Login" method="post">
                         <div class="mb-3">
-                            <label>Email Adresi</label>
-                            <input name="email" type="email" class="form-control" required />
+                            <label class="form-label">Email Adresi</label>
+                            <input asp-for="Email" class="form-control" placeholder="ornek@email.com" />
+                            <span asp-validation-for="Email" class="text-danger"></span>
                         </div>
                         <div class="mb-3">
-                            <label>Şifre</label>
-                            <input name="password" type="password" class="form-control" required />
+                            <label class="form-label">Şifre</label>
+                            <input asp-for="Password" type="password" class="form-control" placeholder="******" />
+                            <span asp-validation-for="Password" class="text-danger"></span>
                         </div>
-                        <button type="submit" class="btn btn-success w-100">Giriş Yap</button>
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-success">Giriş Yap</button>
+                        </div>
                     </form>
                 </div>
                 <div class="card-footer text-center">

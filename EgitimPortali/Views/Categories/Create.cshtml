@@ -40,28 +40,26 @@
     }
 
     <script>
-        // Form gönderildiğinde (submit olduğunda) bu fonksiyon çalışacak
         $('#frmCreate').submit(function (e) {
-            e.preventDefault(); // 1. Sayfanın yenilenmesini (standart gönderimi) DURDUR.
+            e.preventDefault(); 
 
-            // 2. Formdaki verileri al
             var formVerisi = $(this).serialize();
 
             // 3. AJAX isteği gönder
             $.ajax({
-                url: '/Categories/CreateAjax', // Controller'daki yeni metodumuz
+                url: '/Categories/CreateAjax', 
                 type: 'POST',
                 data: formVerisi,
                 success: function (data) {
                     if (data.success) {
-                        // Başarılıysa SweetAlert ile mesaj göster
+                     
                         Swal.fire({
                             title: 'Başarılı!',
                             text: data.message,
                             icon: 'success',
                             confirmButtonText: 'Tamam'
                         }).then((result) => {
-                            // Tamam'a basınca Listeye geri dönsün
+                         
                             if (result.isConfirmed) {
                                 window.location.href = '/Categories/Index';
                             }
