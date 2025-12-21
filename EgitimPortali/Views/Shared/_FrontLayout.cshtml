@@ -76,9 +76,10 @@
                     {
                         // --- GİRİŞ YAPMIŞSA ---
                         <li class="nav-item">
-                            <span class="nav-link text-white fw-bold">Merhaba, @User.Identity.Name</span>
+                            <a class="nav-link text-white fw-bold" asp-controller="Account" asp-action="Profile">
+                                <i class="fas fa-user"></i> Profilim (@User.Identity.Name)
+                            </a>
                         </li>
-
 
                         // Sadece EĞİTMEN ise Panel Butonu Çıksın
                         @if (User.IsInRole("Egitmen"))

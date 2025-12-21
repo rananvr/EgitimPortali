@@ -1,23 +1,64 @@
-﻿@model Microsoft.AspNetCore.Identity.IdentityUser
+﻿@model EgitimPortali.Models.ProfileViewModel
 
 @{
-    ViewData["Title"] = "Profilim";
+    ViewData["Title"] = "Profil Düzenle";
+
+
+    if (User.IsInRole("Admin") || User.IsInRole("Egitmen"))
+    {
+        Layout = "~/Views/Shared/_Layout.cshtml";
+    }
+    else
+    {
+        Layout = "~/Views/Shared/_FrontLayout.cshtml";
+    }
 }
 
-<div class="container mt-5">
-    <div class="card shadow">
-        <div class="card-header bg-info text-white">
-            <h3>Profil Bilgilerim</h3>
+<div class="container mt-5 mb-5">
+    <div class="card shadow col-md-8 mx-auto">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0">Profil Ayarları</h4>
         </div>
         <div class="card-body">
-            <p><strong>Email:</strong> @Model.Email</p>
-            <p><strong>Kullanıcı Adı:</strong> @Model.UserName</p>
-            <p><strong>Kullanıcı ID:</strong> @Model.Id</p>
 
-            <hr />
-            <a href="/Courses/Create" class="btn btn-success">
-                <i class="fa fa-plus"></i> Kurs Ekleme Sayfasına Git
-            </a>
+            @if (TempData["SuccessMessage"] != null)
+            {
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    @TempData["SuccessMessage"]
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            }
+
+            <form asp-action="Profile" method="post">
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Email Adresi</label>
+                    <input asp-for="Email" class="form-control" />
+                </div>
+
+                <hr class="my-4" />
+
+                <h5 class="mb-3 text-muted">Şifre Değiştir (İsteğe Bağlı)</h5>
+
+                <div class="mb-3">
+                    <label class="form-label">Mevcut Şifre</label>
+                    <input asp-for="CurrentPassword" class="form-control" placeholder="Değişiklik için mevcut şifrenizi girin" />
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Yeni Şifre</label>
+                        <input asp-for="NewPassword" class="form-control" placeholder="Yeni şifreniz" />
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Yeni Şifre Tekrar</label>
+                        <input asp-for="ConfirmPassword" class="form-control" placeholder="Tekrar girin" />
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary mt-3 w-100 fw-bold">
+                    <i class="fas fa-save"></i> Güncelle
+                </button>
+            </form>
         </div>
     </div>
 </div>
